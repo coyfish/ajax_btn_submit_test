@@ -1,0 +1,338 @@
+<?php
+
+/**
+ * @file
+ * Module file for AJAX Button Submit Test
+ */
+
+/**
+ * Provides a unique index ID for form IDs
+ * src: drupal.org/node/1517414
+ */
+function ajax_btn_submit_test_form_index() {
+  $index = &drupal_static(__FUNCTION__);
+  if(!is_int($index)) {
+    $index = 0;
+  }
+  $index++;
+  return $index;
+}
+
+/**
+ * Implements hook_init()
+ */
+function ajax_btn_submit_test_init() {
+  drupal_add_library('system', 'drupal.ajax');
+  module_load_include('inc', 'user', 'user.pages');
+}
+
+/**
+ * Implements hook_menu()
+ */
+function ajax_btn_submit_test_menu() {
+  $items = array();
+
+  $items['ajax-btn-submit-test/form'] = array(
+    'title' => 'AHAH callback',
+    'page callback' => 'ajax_btn_submit_test_ajax_form_callback',
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => TRUE,
+    'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function ajax_btn_submit_test_form_USER_LOGIN_BLOCK_alter(&$form, &$form_state, $form_id) {
+  // Unset user-login-block links, we're using our own
+  unset($form['links']);
+
+  // Form wrapper to target with ajax callback
+  $form['#prefix'] = '<div id="login-form-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  // Assigning ID and name attributes to the submit button doesn't seem to
+  // make a difference with respect to the Drupal.ajax objects
+  $form['actions']['submit']['#name'] = 'login';
+  $form['actions']['submit']['#attributes']['id'] = 'ps-login-btn';
+
+  /**
+   * When viewing the user login form, we only want
+   * to see links for sign up and reset password
+   */
+  // Container for our ajax buttons
+  $form['login_links'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'class' => array(
+        'user-login-links',
+      ),
+    ),
+  );
+  $form['login_links']['sign_up'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-signup',
+    '#value' => t('Create new account'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_registration_form',
+      'wrapper' => 'login-form-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+  $form['login_links']['reset_pass'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-reset-pass',
+    '#value' => t('Forgot password?'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_pass_reset_form',
+      'wrapper' => 'login-form-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function ajax_btn_submit_test_form_USER_PASS_alter(&$form, &$form_state, $form_id) {
+  // Form wrapper to target with ajax callback
+  $form['#prefix'] = '<div id="pass-reset-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  // Assigning ID and name attributes to the submit button doesn't seem to
+  // make a difference with respect to the Drupal.ajax objects
+  $form['actions']['submit']['#name'] = 'pass';
+  $form['actions']['submit']['#attributes']['id'] = 'ps-pass-btn';
+
+  /**
+   * When viewing the password reset form, we only want
+   * to see links for login and sign up
+   */
+  // Container for our ajax buttons
+  $form['login_links'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'class' => array(
+        'user-login-links'
+      ),
+    ),
+  );
+  $form['login_links']['login'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-login',
+    '#value' => t('Existing user log in'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_login_form',
+      'wrapper' => 'pass-reset-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+  $form['login_links']['sign_up'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-signup',
+    '#value' => t('Create new account'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_registration_form',
+      'wrapper' => 'pass-reset-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function ajax_btn_submit_test_form_USER_REGISTER_FORM_alter(&$form, &$form_state, $form_id) {
+  // Form wrapper to target with ajax callback
+  $form['#prefix'] = '<div id="register-form-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  // Assigning ID and name attributes to the submit button doesn't seem to
+  // make a difference with respect to the Drupal.ajax objects
+  $form['actions']['submit']['#name'] = 'register';
+  $form['actions']['submit']['#attributes']['id'] = 'ps-register-btn';
+
+  /**
+   * When viewing the register form, we only want
+   * to see links for login and reset password
+   */
+  // Container for our ajax buttons
+  $form['login_links'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'class' => array(
+        'user-login-links'
+      ),
+    ),
+  );
+  $form['login_links']['login'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-login',
+    '#value' => t('Existing user login'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_login_form',
+      'wrapper' => 'register-form-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+  $form['login_links']['reset_pass'] = array(
+    '#type' => 'button',
+    '#name' => 'btn-reset-pass',
+    '#value' => t('Forgot password?'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array(
+        'inline-btn',
+        'use-ajax',
+      ),
+    ),
+    '#ajax' => array(
+      'path' => 'ajax-btn-submit-test/form',
+      'callback' => 'ajax_btn_submit_test_pass_reset_form',
+      'wrapper' => 'register-form-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade'
+    ),
+  );
+}
+
+/**
+ * Helper function to build a user registration form
+ */
+function ajax_btn_submit_test_login_form($form, &$form_state) {
+  global $user;
+  module_load_include('inc', 'user', 'user.pages');
+  $form_index = ajax_btn_submit_test_form_index();
+  $new_form = drupal_get_form('user_login_block');
+  $html = drupal_render($new_form);
+  return $html;
+}
+
+/**
+ * Helper function to build a user registration form
+ */
+function ajax_btn_submit_test_registration_form($form, &$form_state) {
+  global $user;
+  module_load_include('inc', 'user', 'user.pages');
+  $form_index = ajax_btn_submit_test_form_index();
+  $new_form = drupal_get_form('user_register_form');
+  $html = drupal_render($new_form);
+  return $html;
+}
+
+/**
+ * Helper function to build a pass reset form
+ */
+function ajax_btn_submit_test_pass_reset_form($form, &$form_state) {
+  global $user;
+  module_load_include('inc', 'user', 'user.pages');
+  $form_index = ajax_btn_submit_test_form_index();
+  $new_form = drupal_get_form('user_pass');
+  $html = drupal_render($new_form);
+  return $html;
+}
+
+/**
+ * Helper function to setup js settings
+ * (tried concatenating with form html, but no luck)
+ */
+function ajax_btn_submit_test_js_settings() {
+  // Generate the settings:
+  $settings = FALSE;
+  $javascript = drupal_add_js(NULL, NULL);
+  if(isset($javascript['settings'], $javascript['settings']['data']))
+  {
+    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
+    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
+    $settings .=  ');</script>';
+  }
+  return $settings;
+}
+
+/**
+ * Ajax form callback for user forms
+ */
+function ajax_btn_submit_test_ajax_form_callback() {
+  list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
+  drupal_process_form($form['#form_id'], $form, $form_state);
+
+  // We need to return the part of the form (or some other content) that needs
+  // to be re-rendered so the browser can update the page with changed content.
+  // Since this is the generic menu callback used by many Ajax elements, it is
+  // up to the #ajax['callback'] function of the element (may or may not be a
+  // button) that triggered the Ajax request to determine what needs to be
+  // rendered.
+
+  // Error message printed on page re-load: #ajax is undefined index... why?
+  // triggering element is the form submit button - shouldn't be processed
+  // by ajax...
+  // todo: try build #ajax['path'] for login_links only
+  if (!empty($form_state['triggering_element'])) {
+    $callback = $form_state['triggering_element']['#ajax']['callback'];
+  }
+
+
+  if (!empty($callback) && function_exists($callback)) {
+    $result = $callback($form, $form_state);
+    if (!(is_array($result) && isset($result['#type']) && $result['#type'] == 'ajax')) {
+      // Turn the response into a #type=ajax array if it isn't one already.
+      $result = array(
+        '#type' => 'ajax',
+        '#commands' => ajax_prepare_response($result),
+      );
+    }
+
+    $result['#commands'] = array_merge($commands, $result['#commands']);
+    return $result;
+  }
+}
