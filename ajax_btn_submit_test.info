@@ -1,0 +1,5 @@
+name = AJAX Button Submit Test
+description = Reproducing submit errors on multiple ajax loaded forms
+package = Other
+core = 7.x
+version = 7.0-1.0
